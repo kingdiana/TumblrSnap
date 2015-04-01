@@ -1,16 +1,5 @@
 package com.codepath.apps.tumblrsnap.fragments;
 
-import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.Locale;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
@@ -36,6 +25,17 @@ import com.codepath.apps.tumblrsnap.activities.PreviewPhotoActivity;
 import com.codepath.apps.tumblrsnap.models.Photo;
 import com.loopj.android.http.JsonHttpResponseHandler;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.Locale;
+
 public class PhotosFragment extends Fragment {
 	private static final int TAKE_PHOTO_CODE = 1;
 	private static final int PICK_PHOTO_CODE = 2;
@@ -44,6 +44,9 @@ public class PhotosFragment extends Fragment {
 	
 	private Uri photoUri;
 	private Bitmap photoBitmap;
+
+    public final String APP_TAG = "TumblerSnap";
+    public String photoFileName = "photo.jpg";
 	
 	TumblrClient client;
 	ArrayList<Photo> photos;
@@ -88,30 +91,68 @@ public class PhotosFragment extends Fragment {
 			case R.id.action_take_photo:
 			{
 				// Take the user to the camera app
+                Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, getPhotoFileUri(photoFileName)); // set the image file name
+                startActivityForResult(intent, TAKE_PHOTO_CODE);
 			}
 			break;
 			case R.id.action_use_existing:
 			{
-				// Take the user to the gallery app
+                // Create intent for picking a photo from the gallery
+                Intent intent = new Intent(Intent.ACTION_PICK,
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                // Bring up gallery to select a photo
+                startActivityForResult(intent, PICK_PHOTO_CODE);
 			}
 			break;
 		}
 		return super.onOptionsItemSelected(item);
 	}
+
+    // Returns the Uri for a photo stored on disk given the fileName
+    public Uri getPhotoFileUri(String fileName) {
+        // Get safe storage directory for photos
+        File mediaStorageDir = new File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), APP_TAG);
+
+        // Create the storage directory if it does not exist
+        if (!mediaStorageDir.exists() && !mediaStorageDir.mkdirs()){
+            Log.d(APP_TAG, "failed to create directory");
+        }
+
+        // Return the file target for the photo based on filename
+        return Uri.fromFile(new File(mediaStorageDir.getPath() + File.separator + fileName));
+    }
 	
 	@Override
-	public void onActivityResult(int requestCode, int resultCode, Intent data) {
-		if (resultCode == Activity.RESULT_OK) {
-			if (requestCode == TAKE_PHOTO_CODE) {
-				// Extract the photo that was just taken by the camera
-				
-				// Call the method below to trigger the cropping
-				// cropPhoto(photoUri)
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == Activity.RESULT_OK) {
+            if (requestCode == TAKE_PHOTO_CODE) {
+                // Extract the photo that was just taken by the camera
+                //photoUri = getPhotoFileUri(photoFileName);
+                // by this point we have the camera photo on disk
+                //Bitmap takenImage = BitmapFactory.decodeFile(photoUri.getPath());
+                // Load the taken image into a preview
+                //ImageView ivPreview = (ImageView) this.getActivity().findViewById(R.id.ivPreview);
+                //ivPreview.setImageBitmap(takenImage);
+                // Call the method below to trigger the cropping
+				cropPhoto(getPhotoFileUri(photoFileName));
 			} else if (requestCode == PICK_PHOTO_CODE) {
 				// Extract the photo that was just picked from the gallery
-				
-				// Call the method below to trigger the cropping
-				// cropPhoto(photoUri)
+                //photoUri = data.getData();
+                // Do something with the photo based on Uri
+                //Bitmap selectedImage = null;
+                //try {
+                //    selectedImage = MediaStore.Images.Media.getBitmap(getView().getContext().getContentResolver(), photoUri);
+                    // Load the selected image into a preview
+                //    ImageView ivPreview = (ImageView) this.getActivity().findViewById(R.id.ivPreview);
+                //    ivPreview.setImageBitmap(selectedImage);
+
+                    // Call the method below to trigger the cropping
+                    cropPhoto(data.getData());
+                //} catch (IOException e) {
+                //    e.printStackTrace();
+                //}
 			} else if (requestCode == CROP_PHOTO_CODE) {
 				photoBitmap = data.getParcelableExtra("data");
 				startPreviewPhotoActivity();
